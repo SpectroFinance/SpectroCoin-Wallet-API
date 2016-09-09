@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>SpectroCoin Wallet API by SpectroFinance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">SpectroCoin Wallet API</h1>
+      <h2 class="project-tagline">SpectroCoin Bitcoin wallet API specification</h2>
+      <a href="https://github.com/SpectroFinance/SpectroCoin-Wallet-API" class="btn">View on GitHub</a>
+      <a href="https://github.com/SpectroFinance/SpectroCoin-Wallet-API/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/SpectroFinance/SpectroCoin-Wallet-API/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="spectrocoin-bitcoin-wallet-api-specification" class="anchor" href="#spectrocoin-bitcoin-wallet-api-specification" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>SpectroCoin Bitcoin Wallet API specification</h1>
+
+<h1></h1>
+
+<p>This document describes <a href="https://spectrocoin.com">SpectroCoin</a> wallet service API specification.</p>
+
+<h1>
+<a id="contents" class="anchor" href="#contents" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contents</h1>
+
+<ul>
+<li><a href="#requirements">Requirements</a></li>
+<li>
+<a href="#api">API</a>
+
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#post-oauth2auth">POST /oauth2/auth</a></li>
+<li><a href="#post-oauth2refresh">POST /oauth2/refresh</a></li>
+<li><a href="#post-walletsendcurrency">POST /wallet/send/{currency}</a></li>
+<li><a href="#get-walletexchangecalculatebuy">GET /wallet/exchange/calculate/buy</a></li>
+<li><a href="#get-walletexchangecalculatesell">GET /wallet/exchange/calculate/sell</a></li>
+<li><a href="#post-walletexchangebuy">POST /wallet/exchange/buy</a></li>
+<li><a href="#post-walletexchangesell">POST /wallet/exchange/sell</a></li>
+<li><a href="#get-walletaccounts">GET /wallet/accounts</a></li>
+<li><a href="#get-walletaccountaccountid">GET /wallet/account/{accountId}</a></li>
+<li><a href="#get-walletdepositcurrencylast">GET /wallet/deposit/{currency}/last</a></li>
+<li><a href="#get-walletdepositcurrencyfresh">GET /wallet/deposit/{currency}/fresh</a></li>
+</ul>
+</li>
+<li>
+<a href="#errors">Errors</a>
+
+<ul>
+<li><a href="#validation-error">Validation error</a></li>
+<li><a href="#error-codes">Error codes</a></li>
+</ul>
+</li>
+<li><a href="#example-applications">Example applications</a></li>
+</ul>
+
+<h1>
+<a id="requirements" class="anchor" href="#requirements" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Requirements</h1>
+
+<ul>
+<li>Must have a SpectroCoin account (<a href="https://spectrocoin.com/en/signup.html">Sign Up!</a>) to setup wallet API.</li>
+<li>Must <a href="https://spectrocoin.com/en/walletAPI.html">setup</a> wallet API instance on SpectroCoin API configuration page.</li>
+</ul>
+
+<h1>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>API</h1>
+
+<p>Wallet API is REST based web service. Accept <code>GET</code> or <code>POST</code> (<code>application/json</code>) requests. Responses are <code>application/json</code> content type.
+API authentication is performed using OAuth2 (<code>/oauth2</code>). Wallet functions is accessible through <code>/wallet</code>.
+Root REST API address: <code>https://spectrocoin.com/api/r/</code></p>
+
+<h3>
+<a id="responses" class="anchor" href="#responses" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Responses</h3>
+
+<p>Wallet API can return specific response object (HTTP <strong>200</strong>), validation error (HTTP <strong>203</strong>), suspicious activity error (HTTP <strong>403</strong>) or internal error (HTTP <strong>500</strong>).</p>
+
+<h2>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p><img src="https://github.com/SpectroFinance/SpectroCoin-Wallet-API/blob/master/wallet%20api.jpg" alt=""></p>
+
+<p>SpectroCoin use two services:</p>
+
+<ul>
+<li>
+<strong>Authorization service</strong> <code>/oauth2</code> - necessary for getting access to wallet api private service methods usage.</li>
+<li>
+<strong>Wallet api service</strong> <code>/wallet</code> - allows user to check account balances, spend, exchange currency together with other wallet related activities.</li>
+</ul>
+
+<h2>
+<a id="authorization-service" class="anchor" href="#authorization-service" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Authorization service</h2>
+
+<ol>
+<li>To get access tokens (access and refresh tokens) you must call <a href="#post-oauth2auth"><strong>/oath2/auth</strong></a> REST method providing required fields.</li>
+<li>Response will contain token information (access_token, refresh_token, scope, expires_in..). Having access tokens you can build Authorization header value.</li>
+<li>All other REST methods within security scope <strong>must have extra HTTP header</strong> - <code>Authorization</code>. Value should start with Bearer space and access token
+<code>Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</code>
+</li>
+</ol>
+
+<h3>
+<a id="access-tokens-life-time" class="anchor" href="#access-tokens-life-time" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Access tokens life time</h3>
+
+<p>These tokens have a finite lifetime and you must write code to detect when an access token expires. You can do this either by keeping track of the <code>expires_in</code> value returned in the response from the token request (the value is expressed in seconds), or handle the error response (<code>1003</code>) from the API endpoint when an expired token is detected. If access token is expired need to get new token by using refresh token. If refresh token is expired, then need to authenticate from the beginning.</p>
+
+<h3>
+<a id="scope" class="anchor" href="#scope" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Scope</h3>
+
+<p>The scope parameter is used to indicate a list of permissions that are requested by the client. List of scopes should be separated with space. Example: <code>send_currency currency_exchange user_account</code>.</p>
+
+<h2>
+<a id="post-oauth2auth" class="anchor" href="#post-oauth2auth" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>POST /oauth2/auth</h2>
+
+<p>Method to authenticate user and get access tokens to use wallet REST API. Refresh token is used to issue new access tokens when original access token expire.</p>
+
+<h3>
+<a id="request" class="anchor" href="#request" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>client_id</td>
+<td>String</td>
+<td>+</td>
+<td>wallet_8f452af79dcb7fed5979d11cc33910bb</td>
+</tr>
+<tr>
+<td>client_secret</td>
+<td>String</td>
+<td>+</td>
+<td>test-secret</td>
+</tr>
+<tr>
+<td>version</td>
+<td>String</td>
+<td>+</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>scope</td>
+<td>String</td>
+<td>+</td>
+<td>send_currency currency_exchange user_account</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">POST</span> https://spectrocoin.com/api/r/oauth<span class="pl-c1">2</span>/auth
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Content-Length:</span> 137</span>
+<span class="pl-s"><span class="pl-v">Content-Type:</span> application/json</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span>
+
+{
+   <span class="pl-s"><span class="pl-pds">"</span>client_id<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>wallet_8f452af79dcb7fed5979d11cc33910bb<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>client_secret<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>test-secret<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>version<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>1.0<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>scope<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>user_account send_currency currency_exchange<span class="pl-pds">"</span></span>
+}
+</pre></div>
+
+<h3>
+<a id="response" class="anchor" href="#response" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 2001</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>access_token</td>
+<td>String</td>
+<td>+</td>
+<td>42e0f8d6cc2f30d...2df5455b6d05308e6e064b99625</td>
+</tr>
+<tr>
+<td>expires_in</td>
+<td>String</td>
+<td>+</td>
+<td>300 (seconds)</td>
+</tr>
+<tr>
+<td>refresh_token</td>
+<td>String</td>
+<td>+</td>
+<td>3cbba02103fb479...21923fe35038ccf4ebbc8fe6084</td>
+</tr>
+<tr>
+<td>scope</td>
+<td>String</td>
+<td>+</td>
+<td>send_currency currency_exchange user_account</td>
+</tr>
+<tr>
+<td>token_type</td>
+<td>String</td>
+<td>-</td>
+<td>bearer</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>access_token<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>token_type<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>bearer<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>expires_in<span class="pl-pds">"</span></span>: <span class="pl-c1">300</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>refresh_token<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>3cbba02103fb47991921923fe350da11299038ccf4ebbc866fc4b2615b46c013a3211509b0fe6084<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>scope<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>send_currency currency_exchange user_account<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<h2>
+<a id="post-oauth2refresh" class="anchor" href="#post-oauth2refresh" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>POST /oauth2/refresh</h2>
+
+<p>Method to exchange user wallet REST API refresh token to new pair of oauth2 tokens.</p>
+
+<h3>
+<a id="request-1" class="anchor" href="#request-1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>client_id</td>
+<td>String</td>
+<td>+</td>
+<td>wallet_8f452af79dcb7fed5979d11cc33910bb</td>
+</tr>
+<tr>
+<td>client_secret</td>
+<td>String</td>
+<td>+</td>
+<td>test-secret</td>
+</tr>
+<tr>
+<td>refresh_token</td>
+<td>String</td>
+<td>+</td>
+<td>cfee255c08b61b08...1588a4de1fc75a89b529619</td>
+</tr>
+<tr>
+<td>version</td>
+<td>String</td>
+<td>+</td>
+<td>1.0</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">POST</span> https://spectrocoin.com/api/r/oauth<span class="pl-c1">2</span>/refresh
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Content-Length:</span> 177</span>
+<span class="pl-s"><span class="pl-v">Content-Type:</span> application/json</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span>
+
+{
+   <span class="pl-s"><span class="pl-pds">"</span>client_id<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>wallet_8f452af79dcb7fed5979d11cc33910bb<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>client_secret<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>test-secret<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>version<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>1.0<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>refresh_token<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>cfee255c08b61b08…1588a4de1fc75a89b529619<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<h3>
+<a id="response-1" class="anchor" href="#response-1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 2001, 2003</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>access_token</td>
+<td>String</td>
+<td>+</td>
+<td>f6f2e066917...3cd28756350041fd00c8ff741e0c1bf</td>
+</tr>
+<tr>
+<td>expires_in</td>
+<td>String</td>
+<td>+</td>
+<td>300 (seconds)</td>
+</tr>
+<tr>
+<td>refresh_token</td>
+<td>String</td>
+<td>+</td>
+<td>f4a74245757...be20d23fc81cff0750613cd319abaf1</td>
+</tr>
+<tr>
+<td>scope</td>
+<td>String</td>
+<td>+</td>
+<td>send_currency currency_exchange user_account</td>
+</tr>
+<tr>
+<td>token_type</td>
+<td>String</td>
+<td>-</td>
+<td>bearer</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>access_token<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>f6f2e0669172035b98a241d6e2afdf531184a400ec8321e1f3cd28756350041fd00c8ff741e0c1bf<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>token_type<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>bearer<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>expires_in<span class="pl-pds">"</span></span>: <span class="pl-c1">300</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>refresh_token<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>f4a742457578f5d0b029bf39776c8a6b45b43f7bf5e97514cbe20d23fc81cff0750613cd319abaf1<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>scope<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>send_currency currency_exchange user_account<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<p>Validation example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>[{
+   <span class="pl-s"><span class="pl-pds">"</span>code<span class="pl-pds">"</span></span>: <span class="pl-c1">2003</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>message<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>Refresh token expired, please authenticate.<span class="pl-pds">"</span></span>
+}]</pre></div>
+
+<h2>
+<a id="post-walletsendcurrency" class="anchor" href="#post-walletsendcurrency" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>POST /wallet/send/{currency}</h2>
+
+<p>Operation to send currency to receiver (bitcoin address, dash address, email address). Additional fees may apply depending on send currency and receiver type. Receiver will receive provided amount and currency if sender has enough balance to cover possible additional fee, otherwise fee will be deducted from send amount. You can provide multiple Bitcoin addresses as receivers to include all payments into one transaction.</p>
+
+<h3>
+<a id="security" class="anchor" href="#security" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>send_currency</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="path-parameters" class="anchor" href="#path-parameters" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Path parameters</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>currency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR, BTC, DASH</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-2" class="anchor" href="#request-2" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>amount</td>
+<td>Double</td>
+<td>+</td>
+<td>13.19, 0.00145021</td>
+</tr>
+<tr>
+<td>receiver</td>
+<td>String</td>
+<td>+</td>
+<td>
+<a href="mailto:test_cs7@spectrocoin.com">test_cs7@spectrocoin.com</a>, 12KKCFWLPayT8VAbhHRhs7VCS1LPUGGfqv</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">POST</span> https://spectrocoin.com/api/r/wallet/send/EUR
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Content-Length:</span> 47</span>
+<span class="pl-s"><span class="pl-v">Content-Type:</span> application/json</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span>
+
+<span class="pl-k">[</span>
+  {
+    "amount": 0.2<span class="pl-k">,</span>
+    "receiver": "12KKCFWLPayT8VAbhHRhs7VCS1LPUGGfqv"
+  }
+<span class="pl-k">]</span></pre></div>
+
+<p>Example for multiple BTC receivers:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">POST</span> https://spectrocoin.com/api/r/wallet/send/BTC
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Content-Length:</span> 47</span>
+<span class="pl-s"><span class="pl-v">Content-Type:</span> application/json</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span>
+
+<span class="pl-k">[</span>
+  {
+    "amount": 0.2<span class="pl-k">,</span>
+    "receiver": "12KKCFWLPayT8VAbhHRhs7VCS1LPUGGfqv"
+  }<span class="pl-k">,</span>
+  {
+    "amount": 0.3<span class="pl-k">,</span>
+    "receiver": "12KKCFWLPayT8VAbhHRhs7VCS1LPUGGfqv"
+  }
+<span class="pl-k">]</span></pre></div>
+
+<h3>
+<a id="response-2" class="anchor" href="#response-2" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1001, 1003, 1004, 1005, 1008, 3001, 3002, 3003, 3005, 3006, 3016, 3017 5003, 5021</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>paymentId</td>
+<td>Long</td>
+<td>+</td>
+<td>153</td>
+</tr>
+<tr>
+<td>withdrawAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>13.19, 0.00145021</td>
+</tr>
+<tr>
+<td>receiveAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>13.19, 0.00145021</td>
+</tr>
+<tr>
+<td>currency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR, BTC, USD...</td>
+</tr>
+<tr>
+<td>status</td>
+<td>String</td>
+<td>-</td>
+<td>Statuses: <code>NEW</code>, <code>PENDING</code> or <code>PAID</code>
+</td>
+</tr>
+</tbody>
+</table>
+
+<ul>
+<li>
+<code>NEW</code> – initial status, should be processed in near future or manually </li>
+<li>
+<code>PENDING</code> – money from sender account is charged and reserved for receiver</li>
+<li>
+<code>PAID</code> – receiver got money</li>
+</ul>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-json"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>paymentId<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>153<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>withdrawAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">13.19</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">13.19</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>currency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PAID<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<p>Validation example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>[
+      {
+      <span class="pl-s"><span class="pl-pds">"</span>code<span class="pl-pds">"</span></span>: <span class="pl-c1">1</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>message<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>amount is required<span class="pl-pds">"</span></span>
+   },
+      {
+      <span class="pl-s"><span class="pl-pds">"</span>code<span class="pl-pds">"</span></span>: <span class="pl-c1">1</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>message<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>receiver is required<span class="pl-pds">"</span></span>
+   }
+]</pre></div>
+
+<h2>
+<a id="get-walletexchangecalculatebuy" class="anchor" href="#get-walletexchangecalculatebuy" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>GET /wallet/exchange/calculate/buy</h2>
+
+<p>Operation used to calculate needed pay amount to receive required receive amount at the current moment.</p>
+
+<h3>
+<a id="security-1" class="anchor" href="#security-1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>currency_exchange</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-3" class="anchor" href="#request-3" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>receiveAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>0.00212015, 3.01</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">GET</span> https://spectrocoin.com/api/r/wallet/exchange/calculate/buy<span class="pl-c1">?</span><span class="pl-c1">receiveAmount</span><span class="pl-c1">=</span><span class="pl-c1">3.01</span><span class="pl-c1">&amp;</span><span class="pl-c1">receiveCurrency</span><span class="pl-c1">=</span><span class="pl-c1">USD</span><span class="pl-c1">&amp;</span><span class="pl-c1">payCurrency</span><span class="pl-c1">=</span><span class="pl-c1">EUR</span>
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span></pre></div>
+
+<h3>
+<a id="response-3" class="anchor" href="#response-3" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 1004, 1005, 7008</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>payAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>2.35</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>payAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">2.35</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<h2>
+<a id="get-walletexchangecalculatesell" class="anchor" href="#get-walletexchangecalculatesell" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>GET /wallet/exchange/calculate/sell</h2>
+
+<p>Operation used to calculate receive amount of currency exchange using pay amount at the current moment.</p>
+
+<h3>
+<a id="security-2" class="anchor" href="#security-2" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>currency_exchange</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-4" class="anchor" href="#request-4" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>payAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>10.15, 14.80219015</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">GET</span> https://spectrocoin.com/api/r/wallet/exchange/calculate/sell<span class="pl-c1">?</span><span class="pl-c1">payAmount</span><span class="pl-c1">=</span><span class="pl-c1">10.15</span><span class="pl-c1">&amp;</span><span class="pl-c1">payCurrency</span><span class="pl-c1">=</span><span class="pl-c1">EUR</span><span class="pl-c1">&amp;</span><span class="pl-c1">receiveCurrency</span><span class="pl-c1">=</span><span class="pl-c1">BTC</span>
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span></pre></div>
+
+<h3>
+<a id="response-4" class="anchor" href="#response-4" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 1004, 1005, 7008</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>receiveAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>19.23, 0.0001257</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>receiveAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">0.04610103</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>BTC<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<h2>
+<a id="post-walletexchangebuy" class="anchor" href="#post-walletexchangebuy" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>POST /wallet/exchange/buy</h2>
+
+<p>Operation used to buy requested amount of receive currency while paying with pay currency.</p>
+
+<h3>
+<a id="security-3" class="anchor" href="#security-3" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>currency_exchange</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-5" class="anchor" href="#request-5" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>receiveAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>3.01, 0.04610103</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>USD</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">POST</span> https://spectrocoin.com/api/r/wallet/exchange/buy
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Content-Length:</span> 54</span>
+<span class="pl-s"><span class="pl-v">Content-Type:</span> application/json</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span>
+
+{
+   <span class="pl-s"><span class="pl-pds">"</span>receiveAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">3.01</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>USD<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>
+}
+</pre></div>
+
+<h3>
+<a id="response-5" class="anchor" href="#response-5" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1001, 1002, 1003, 1004, 1005, 7006, 7007, 7008, 7009, 7010</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>exchangeId</td>
+<td>Long</td>
+<td>+</td>
+<td>50</td>
+</tr>
+<tr>
+<td>payAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>2.35, 0.046101</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+<tr>
+<td>receiveAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>19.23, 0.0001257</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>USD</td>
+</tr>
+<tr>
+<td>status</td>
+<td>String</td>
+<td>-</td>
+<td>Statuses: NEW, PENDING or PAID</td>
+</tr>
+</tbody>
+</table>
+
+<ul>
+<li>
+<code>NEW</code> – initial status</li>
+<li>
+<code>PENDING</code> – waiting for approval</li>
+<li>
+<code>PAID</code> – exchange completed</li>
+</ul>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>exchangeId<span class="pl-pds">"</span></span>: <span class="pl-c1">50</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PAID<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">2.35</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>USD<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">3.01</span>
+}</pre></div>
+
+<h2>
+<a id="post-walletexchangesell" class="anchor" href="#post-walletexchangesell" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>POST /wallet/exchange/sell</h2>
+
+<p>Operation used to exchange pay currency amount to receive currency.</p>
+
+<h3>
+<a id="security-4" class="anchor" href="#security-4" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>currency_exchange</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-6" class="anchor" href="#request-6" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>payAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>1.15, 2.35040101</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">POST</span> https://spectrocoin.com/api/r/wallet/exchange/sell
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer 42e0f8d6cc2f30de2b1dad7cc2df5455b6d05308e6e06495c766dcb43853ba6d17b77b7623899625</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Content-Length:</span> 50</span>
+<span class="pl-s"><span class="pl-v">Content-Type:</span> application/json</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span>
+
+{
+   <span class="pl-s"><span class="pl-pds">"</span>payAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">1.15</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>BTC<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>
+}
+</pre></div>
+
+<h3>
+<a id="response-6" class="anchor" href="#response-6" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1001, 1002, 1003, 1004, 1005, 7006, 7007, 7008, 7009, 7010</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>exchangeId</td>
+<td>Long</td>
+<td>+</td>
+<td>51</td>
+</tr>
+<tr>
+<td>payAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>1.15</td>
+</tr>
+<tr>
+<td>payCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+<tr>
+<td>receiveAmount</td>
+<td>Double</td>
+<td>+</td>
+<td>0.00522326</td>
+</tr>
+<tr>
+<td>receiveCurrency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC</td>
+</tr>
+<tr>
+<td>status</td>
+<td>String</td>
+<td>+</td>
+<td>Statuses: <code>NEW</code>, <code>PENDING</code> or <code>PAID</code>
+</td>
+</tr>
+</tbody>
+</table>
+
+<ul>
+<li>
+<code>NEW</code> – initial status</li>
+<li>
+<code>PENDING</code> – waiting for approval</li>
+<li>
+<code>PAID</code> – exchange completed</li>
+</ul>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>exchangeId<span class="pl-pds">"</span></span>: <span class="pl-c1">51</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PAID<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">1.15</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>payCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveCurrency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>BTC<span class="pl-pds">"</span></span>,
+   <span class="pl-s"><span class="pl-pds">"</span>receiveAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">0.00522326</span>
+}</pre></div>
+
+<h2>
+<a id="get-walletaccounts" class="anchor" href="#get-walletaccounts" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>GET /wallet/accounts</h2>
+
+<p>Operation used to get user accounts information.</p>
+
+<h3>
+<a id="security-5" class="anchor" href="#security-5" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>user_account</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-7" class="anchor" href="#request-7" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">GET</span> https://spectrocoin.com/api/r/wallet/accounts
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer f6f2e0669172035b98a241d6e2afdf531184a400ec8321e1f3cd28756350041fd00c8ff741e0c1bf</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span></pre></div>
+
+<h3>
+<a id="response-7" class="anchor" href="#response-7" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Response is an array of accounts. Account structure is defined bellow.</p>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 1004</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>accountId</td>
+<td>Long</td>
+<td>+</td>
+<td>2626</td>
+</tr>
+<tr>
+<td>balance</td>
+<td>Double</td>
+<td>+</td>
+<td>351.76</td>
+</tr>
+<tr>
+<td>availableBalance</td>
+<td>Double</td>
+<td>+</td>
+<td>351.76</td>
+</tr>
+<tr>
+<td>reservedAmount</td>
+<td>Double</td>
+<td>-</td>
+<td>0</td>
+</tr>
+<tr>
+<td>currencyName</td>
+<td>String</td>
+<td>+</td>
+<td>Euro</td>
+</tr>
+<tr>
+<td>currencyCode</td>
+<td>String</td>
+<td>+</td>
+<td>EUR</td>
+</tr>
+<tr>
+<td>currencySymbol</td>
+<td>String</td>
+<td>-</td>
+<td>€</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{<span class="pl-s"><span class="pl-pds">"</span>accounts<span class="pl-pds">"</span></span>: [
+   {
+      <span class="pl-s"><span class="pl-pds">"</span>accountId<span class="pl-pds">"</span></span>: <span class="pl-c1">1505</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>balance<span class="pl-pds">"</span></span>: <span class="pl-c1">1677.11</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyName<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EURO<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyCode<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>availableBalance<span class="pl-pds">"</span></span>: <span class="pl-c1">1677.11</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>reservedAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">0</span>
+   },
+    {
+      <span class="pl-s"><span class="pl-pds">"</span>accountId<span class="pl-pds">"</span></span>: <span class="pl-c1">2625</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>balance<span class="pl-pds">"</span></span>: <span class="pl-c1">104.49</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyName<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>GBP<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyCode<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>GBP<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>availableBalance<span class="pl-pds">"</span></span>: <span class="pl-c1">104.49</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>reservedAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">0</span>
+   },
+    {
+      <span class="pl-s"><span class="pl-pds">"</span>accountId<span class="pl-pds">"</span></span>: <span class="pl-c1">2503</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>balance<span class="pl-pds">"</span></span>: <span class="pl-c1">25.76161379</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyName<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>Bitcoin<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyCode<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>BTC<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>availableBalance<span class="pl-pds">"</span></span>: <span class="pl-c1">17.76161379</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>reservedAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">18</span>
+   },
+    {
+      <span class="pl-s"><span class="pl-pds">"</span>accountId<span class="pl-pds">"</span></span>: <span class="pl-c1">2583</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>balance<span class="pl-pds">"</span></span>: <span class="pl-c1">627.51</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyName<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>USD<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>currencyCode<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>USD<span class="pl-pds">"</span></span>,
+      <span class="pl-s"><span class="pl-pds">"</span>availableBalance<span class="pl-pds">"</span></span>: <span class="pl-c1">627.51</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>reservedAmount<span class="pl-pds">"</span></span>: <span class="pl-c1">0</span>
+   }
+]}</pre></div>
+
+<h2>
+<a id="get-walletaccountaccountid" class="anchor" href="#get-walletaccountaccountid" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>GET /wallet/account/{accountId}</h2>
+
+<p>Operation used to get paged transaction history of user account.</p>
+
+<h3>
+<a id="security-6" class="anchor" href="#security-6" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>user_account</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="path-parameters-1" class="anchor" href="#path-parameters-1" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Path parameters</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>accountId</td>
+<td>Long</td>
+<td>+</td>
+<td>2626</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="request-8" class="anchor" href="#request-8" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Request</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>page</td>
+<td>Integer</td>
+<td>+</td>
+<td>1</td>
+</tr>
+<tr>
+<td>size</td>
+<td>Integer</td>
+<td>+</td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">GET</span> https://spectrocoin.com/api/r/wallet/account/<span class="pl-c1">1505</span><span class="pl-c1">?</span><span class="pl-c1">page</span><span class="pl-c1">=</span><span class="pl-c1">1</span><span class="pl-c1">&amp;</span><span class="pl-c1">size</span><span class="pl-c1">=</span><span class="pl-c1">4</span>
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer f6f2e0669172035b98a241d6e2afdf531184a400ec8321e1f3cd28756350041fd00c8ff741e0c1bf</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span></pre></div>
+
+<h3>
+<a id="response-8" class="anchor" href="#response-8" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Response is an array of transaction info and total transactions count. Historical data is returned in descending order. If user don’t define page and size in request by default we return first 25 records. History structure is defined bellow.</p>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 1004, 6001</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>totalCount</td>
+<td>Long</td>
+<td>+</td>
+<td>425</td>
+</tr>
+<tr>
+<td>history</td>
+<td>Array of <strong>History structure</strong>
+</td>
+<td>-</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+<h4>
+<a id="history-structure" class="anchor" href="#history-structure" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>History structure</h4>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>transactionId</td>
+<td>String</td>
+<td>+</td>
+<td>SC000004848</td>
+</tr>
+<tr>
+<td>amount</td>
+<td>Double</td>
+<td>+</td>
+<td>-1.15</td>
+</tr>
+<tr>
+<td>description</td>
+<td>String</td>
+<td>+</td>
+<td>EUR sell for exchange. 1.15 EUR</td>
+</tr>
+<tr>
+<td>date</td>
+<td>Date</td>
+<td>+</td>
+<td>2016-03-10T14:27:31.000Z</td>
+</tr>
+<tr>
+<td>status</td>
+<td>String</td>
+<td>+</td>
+<td>Statuses: <code>PENDING</code>, <code>PROCESSED</code>  or <code>FAILED</code>
+</td>
+</tr>
+</tbody>
+</table>
+
+<ul>
+<li>
+<code>PENDING</code>  – waiting for action</li>
+<li>
+<code>PROCESSED</code> – transaction completed</li>
+<li>
+<code>FAILED</code> – transaction incomplete for some reason</li>
+</ul>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+   <span class="pl-s"><span class="pl-pds">"</span>totalCount<span class="pl-pds">"</span></span>: <span class="pl-c1">425</span>,
+   <span class="pl-s"><span class="pl-pds">"</span>history<span class="pl-pds">"</span></span>:    
+   [
+      {
+         <span class="pl-s"><span class="pl-pds">"</span>transactionNo<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>SC000004848<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PROCESSED<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>amount<span class="pl-pds">"</span></span>: <span class="pl-c1">-1.15</span>,
+         <span class="pl-s"><span class="pl-pds">"</span>description<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR sell for exchange. 1.15 EUR<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>date<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>2016-03-10T14:27:31.000Z<span class="pl-pds">"</span></span>
+      },
+      {
+         <span class="pl-s"><span class="pl-pds">"</span>transactionNo<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>SC000004846<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PROCESSED<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>amount<span class="pl-pds">"</span></span>: <span class="pl-c1">-2.35</span>,
+         <span class="pl-s"><span class="pl-pds">"</span>description<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR sell for exchange. 2.35 EUR<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>date<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>2016-03-10T14:18:12.000Z<span class="pl-pds">"</span></span>
+      },
+      {
+         <span class="pl-s"><span class="pl-pds">"</span>transactionNo<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>SC000004841<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PROCESSED<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>amount<span class="pl-pds">"</span></span>: <span class="pl-c1">-13.19</span>,
+         <span class="pl-s"><span class="pl-pds">"</span>description<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR sell for exchange. 13.19 EUR<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>date<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>2016-03-10T14:12:40.000Z<span class="pl-pds">"</span></span>
+      },
+      {
+         <span class="pl-s"><span class="pl-pds">"</span>transactionNo<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>SC000004776<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>PROCESSED<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>amount<span class="pl-pds">"</span></span>: <span class="pl-c1">-1.01</span>,
+         <span class="pl-s"><span class="pl-pds">"</span>description<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>EUR sell for exchange. 1.01 EUR<span class="pl-pds">"</span></span>,
+         <span class="pl-s"><span class="pl-pds">"</span>date<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>2016-03-09T14:39:13.000Z<span class="pl-pds">"</span></span>
+      }
+   ]}</pre></div>
+
+<h2>
+<a id="get-walletdepositcurrencylast" class="anchor" href="#get-walletdepositcurrencylast" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>GET /wallet/deposit/{currency}/last</h2>
+
+<p>Operation used to get last crypto deposit address.</p>
+
+<h3>
+<a id="security-7" class="anchor" href="#security-7" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>user_account</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="path-parameters-2" class="anchor" href="#path-parameters-2" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Path parameters</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>currency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC, DASH</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">GET</span> https://spectrocoin.com/api/r/wallet/deposit/BTC/last
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer f6f2e0669172035b98a241d6e2afdf531184a400ec8321e1f3cd28756350041fd00c8ff741e0c1bf</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span></pre></div>
+
+<h3>
+<a id="response-9" class="anchor" href="#response-9" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Return last crypto address.</p>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 1004, 1012</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>btcAddress</td>
+<td>String</td>
+<td>-</td>
+<td>1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b</td>
+</tr>
+<tr>
+<td>cryptoAddress</td>
+<td>String</td>
+<td>+</td>
+<td>1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b</td>
+</tr>
+<tr>
+<td>currency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+    <span class="pl-s"><span class="pl-pds">"</span>btcAddress<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>cryptoAddress<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>currency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>BTC<span class="pl-pds">"</span></span>,
+}</pre></div>
+
+<p>or</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+    <span class="pl-s"><span class="pl-pds">"</span>cryptoAddress<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>Xxbit2NkZ4YfAyrgWCSQtRzDjvPJyPFZ4n<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>currency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>DASH<span class="pl-pds">"</span></span>,
+}</pre></div>
+
+<h2>
+<a id="get-walletdepositcurrencyfresh" class="anchor" href="#get-walletdepositcurrencyfresh" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>GET /wallet/deposit/{currency}/fresh</h2>
+
+<p>Operation used to get new crypto deposit address.</p>
+
+<h3>
+<a id="security-8" class="anchor" href="#security-8" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Security</h3>
+
+<table>
+<thead>
+<tr>
+<th>Schema</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OAuth2</td>
+<td>user_account</td>
+</tr>
+</tbody>
+</table>
+
+<h3>
+<a id="path-parameters-3" class="anchor" href="#path-parameters-3" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Path parameters</h3>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>currency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC, DASH</td>
+</tr>
+</tbody>
+</table>
+
+<p>Example HTTP request:</p>
+
+<div class="highlight highlight-source-httpspec"><pre><span class="pl-k">GET</span> https://spectrocoin.com/api/r/wallet/deposit/BTC/fresh
+<span class="pl-s"><span class="pl-v">Authorization:</span> Bearer f6f2e0669172035b98a241d6e2afdf531184a400ec8321e1f3cd28756350041fd00c8ff741e0c1bf</span>
+<span class="pl-s"><span class="pl-v">Connection:</span> Keep-Alive</span>
+<span class="pl-s"><span class="pl-v">Host:</span> spectrocoin.com</span></pre></div>
+
+<h3>
+<a id="response-10" class="anchor" href="#response-10" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Response</h3>
+
+<p>Return new Bitcoin address.</p>
+
+<p>Possible validation error codes: <a href="#error-codes">1, 1003, 1004, 1012</a></p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Always return</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>btcAddress</td>
+<td>String</td>
+<td>-</td>
+<td>1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41</td>
+</tr>
+<tr>
+<td>cryptoAddress</td>
+<td>String</td>
+<td>+</td>
+<td>1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41</td>
+</tr>
+<tr>
+<td>currency</td>
+<td>String</td>
+<td>+</td>
+<td>BTC</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+    <span class="pl-s"><span class="pl-pds">"</span>btcAddress<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>cryptoAddress<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>currency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>BTC<span class="pl-pds">"</span></span>,
+}</pre></div>
+
+<p>or</p>
+
+<div class="highlight highlight-source-httpspec"><pre>{
+    <span class="pl-s"><span class="pl-pds">"</span>cryptoAddress<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>Xxbit2NkZ4YfAyrgWCSQtRzDjvPJyPFZ4n<span class="pl-pds">"</span></span>,
+    <span class="pl-s"><span class="pl-pds">"</span>currency<span class="pl-pds">"</span></span>: <span class="pl-s"><span class="pl-pds">"</span>DASH<span class="pl-pds">"</span></span>,
+}</pre></div>
+
+<h2>
+<a id="errors" class="anchor" href="#errors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Errors</h2>
+
+<p>Invalid request or internal errors will result HTTP response with code <strong>500</strong>.</p>
+
+<h3>
+<a id="validation-error" class="anchor" href="#validation-error" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Validation error</h3>
+
+<p>Validation errors will result HTTP response with code <strong>203</strong>. Response is an array of error information:</p>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>code</td>
+<td>Short</td>
+<td>+</td>
+<td>1</td>
+</tr>
+<tr>
+<td>message</td>
+<td>String</td>
+<td>+</td>
+<td>Unable to sell Bitcoin</td>
+</tr>
+</tbody>
+</table>
+
+<p>JSON Response example:</p>
+
+<div class="highlight highlight-source-httpspec"><pre>[
+    {
+      <span class="pl-s"><span class="pl-pds">"</span>code<span class="pl-pds">"</span></span>:<span class="pl-c1">1005</span>,
+      <span class="pl-s"><span class="pl-pds">"</span>message<span class="pl-pds">"</span></span>:<span class="pl-s"><span class="pl-pds">"</span>Unknown value: BTR<span class="pl-pds">"</span></span>
+    }
+]</pre></div>
+
+<h3>
+<a id="error-codes" class="anchor" href="#error-codes" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Error codes</h3>
+
+<p>Current available error codes:</p>
+
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Message</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Invalid validation (dynamic message)</td>
+</tr>
+<tr>
+<td>97</td>
+<td>Unsupported media type</td>
+</tr>
+<tr>
+<td>100</td>
+<td>Unexpected error</td>
+</tr>
+<tr>
+<td>1001</td>
+<td>{value} can't be null</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>{amount} should be more than zero</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>Forbidden</td>
+</tr>
+<tr>
+<td>1004</td>
+<td>Unauthorized</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>Unknown value: ???</td>
+</tr>
+<tr>
+<td>1008</td>
+<td>Amount should be more than {amount} {currency}</td>
+</tr>
+<tr>
+<td>1012</td>
+<td>{currency} is not crypto currency!</td>
+</tr>
+<tr>
+<td>2001</td>
+<td>Specified client not found for this credentials. client_id: {client_id}, version: {version}</td>
+</tr>
+<tr>
+<td>2002</td>
+<td>Application for this user is disabled</td>
+</tr>
+<tr>
+<td>2003</td>
+<td>Refresh token expired, please authenticate</td>
+</tr>
+<tr>
+<td>3001</td>
+<td>Balance not enough to send</td>
+</tr>
+<tr>
+<td>3002</td>
+<td>Invalid email or address</td>
+</tr>
+<tr>
+<td>3003</td>
+<td>Invalid email address</td>
+</tr>
+<tr>
+<td>3006</td>
+<td>Amount too small to send</td>
+</tr>
+<tr>
+<td>3016</td>
+<td>Destination count reached. Max allowed destinations: {count}</td>
+</tr>
+<tr>
+<td>3017</td>
+<td>Data have empty fields</td>
+</tr>
+<tr>
+<td>5003</td>
+<td>User not verified</td>
+</tr>
+<tr>
+<td>5021</td>
+<td>Unsupported multiple coins send to email address</td>
+</tr>
+<tr>
+<td>6001</td>
+<td>Member account {accountId} not found for this user.</td>
+</tr>
+<tr>
+<td>7006</td>
+<td>Exceeds {period} user pay limit! - {amount} {currency}</td>
+</tr>
+<tr>
+<td>7007</td>
+<td>Exceeds {period} user receive limit! - {amount} {currency}</td>
+</tr>
+<tr>
+<td>7008</td>
+<td>Unsupported currency exchange.</td>
+</tr>
+<tr>
+<td>7009</td>
+<td>Pay amount can't be smaller than {amount} {currency}</td>
+</tr>
+<tr>
+<td>7010</td>
+<td>Receive amount can't be smaller than {amount} {currency}</td>
+</tr>
+</tbody>
+</table>
+
+<h1>
+<a id="example-applications" class="anchor" href="#example-applications" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example applications</h1>
+
+<p>There are several sample SpectroCoin wallet API client applications. You should customize them for your needs.</p>
+
+<h2>
+<a id="java" class="anchor" href="#java" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Java</h2>
+
+<p>Sample SpectroCoin Wallet Java application could be found <a href="https://github.com/SpectroFinance/SpectroCoin-Wallet-Java">here</a>.</p>
+
+<h2>
+<a id="php" class="anchor" href="#php" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>PHP</h2>
+
+<p>Sample PHP application <strong>coming soon</strong>.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/SpectroFinance/SpectroCoin-Wallet-API">SpectroCoin Wallet API</a> is maintained by <a href="https://github.com/SpectroFinance">SpectroFinance</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
