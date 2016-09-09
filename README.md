@@ -16,8 +16,8 @@ This document describes [SpectroCoin](https://spectrocoin.com) wallet service AP
    * [POST /wallet/exchange/sell](#post-walletexchangesell)
    * [GET /wallet/accounts](#get-walletaccounts)
    * [GET /wallet/account/{accountId}](#get-walletaccountaccountid)
-   * [GET /wallet/deposit/BTC/last](#get-walletdepositbtclast)
-   * [GET /wallet/deposit/BTC/fresh](#get-walletdepositbtcfresh)
+   * [GET /wallet/deposit/{currency}/last](#get-walletdepositcurrencylast)
+   * [GET /wallet/deposit/{currency}/fresh](#get-walletdepositcurrencyfresh)
 * [Errors](#errors)
   * [Validation error](#validation-error)
   * [Error codes](#error-codes)
@@ -173,7 +173,7 @@ Validation example:
 ```
 
 ## POST /wallet/send/{currency}
-Operation to send currency to receiver (bitcoin address, email address). Additional fees may apply depending on send currency and receiver type. Receiver will receive provided amount and currency if sender has enough balance to cover possible additional fee, otherwise fee will be deducted from send amount. You can provide multiple Bitcoin addresses as receivers to include all payments into one transaction.
+Operation to send currency to receiver (bitcoin address, dash address, email address). Additional fees may apply depending on send currency and receiver type. Receiver will receive provided amount and currency if sender has enough balance to cover possible additional fee, otherwise fee will be deducted from send amount. You can provide multiple Bitcoin addresses as receivers to include all payments into one transaction.
 
 ### Security
 
@@ -184,7 +184,7 @@ OAuth2	|	send_currency
 ### Path parameters
 Field	| Type	| Required  |	Example
 ------|-------|-----------|--------
-currency	| String	| +	| EUR, BTC
+currency	| String	| +	| EUR, BTC, DASH
 
 ### Request
 
@@ -650,14 +650,19 @@ JSON Response example:
       }
    ]}
 ```
-## GET /wallet/deposit/BTC/last
-Operation used to get last BTC deposit address.
+## GET /wallet/deposit/{currency}/last
+Operation used to get last crypto deposit address.
 
 ### Security
 
 Schema	| Scope|
 ------|-------|
 OAuth2	|	user_account|
+
+### Path parameters
+Field	| Type	| Required  |	Example
+------|-------|-----------|--------
+currency	| String	| +	| BTC, DASH
 
 Example HTTP request:
 
@@ -668,29 +673,45 @@ Connection: Keep-Alive
 Host: spectrocoin.com
 ```
 ### Response
-Return last Bitcoin address.
+Return last crypto address.
 
-Possible validation error codes: [1, 1003, 1004](#error-codes)
+Possible validation error codes: [1, 1003, 1004, 1012](#error-codes)
 
 Field	| Type  |	Always return	| Example
 ------|-------|---------------|--------
-btcAddress	|	String	|	+	|	1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b
+btcAddress	|	String	|	-	|	1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b
+cryptoAddress	|	String	|	+	|	1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b
+currency	|	String	|	+	|	BTC
 
 JSON Response example:
 ```http
 {
-	"btcAddress": "1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b"
+	"btcAddress": "1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b",
+	"cryptoAddress": "1M4bqMd471TTwNtUSeHPhSW5qQy1Y48p5b",
+	"currency": "BTC",
+}
+```
+or
+```http
+{
+	"cryptoAddress": "Xxbit2NkZ4YfAyrgWCSQtRzDjvPJyPFZ4n",
+	"currency": "DASH",
 }
 ```
 
-## GET /wallet/deposit/BTC/fresh
-Operation used to get new BTC deposit address.
+## GET /wallet/deposit/{currency}/fresh
+Operation used to get new crypto deposit address.
 
 ### Security
 
 Schema	| Scope|
 ------|-------|
 OAuth2	|	user_account|
+
+### Path parameters
+Field	| Type	| Required  |	Example
+------|-------|-----------|--------
+currency	| String	| +	| BTC, DASH
 
 Example HTTP request:
 
@@ -703,16 +724,28 @@ Host: spectrocoin.com
 ### Response
 Return new Bitcoin address.
 
-Possible validation error codes: [1, 1003, 1004](#error-codes)
+Possible validation error codes: [1, 1003, 1004, 1012](#error-codes)
 
 Field	| Type  |	Always return	| Example
 ------|-------|---------------|--------
-btcAddress	|	String	|	+	|	1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41
+btcAddress	|	String	|	-	|	1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41
+cryptoAddress	|	String	|	+	|	1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41
+currency	|	String	|	+	|	BTC
 
 JSON Response example:
 ```http
 {
-	"btcAddress": "1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41"
+	"btcAddress": "1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41",
+	"cryptoAddress": "1Bm3ENaZrtrExi56ywM6DWKQgJDmsrMQ41",
+	"currency": "BTC",
+}
+```
+or
+
+```http
+{
+	"cryptoAddress": "Xxbit2NkZ4YfAyrgWCSQtRzDjvPJyPFZ4n",
+	"currency": "DASH",
 }
 ```
 
@@ -751,6 +784,7 @@ Code | Message
 1004	|	 Unauthorized
 1005	|	 Unknown value: ???
 1008	|	 Amount should be more than {amount} {currency}
+1012	|	{currency} is not crypto currency!
 2001	|	 Specified client not found for this credentials. client_id: {client_id}, version: {version}
 2002	|	 Application for this user is disabled
 2003	|	 Refresh token expired, please authenticate
