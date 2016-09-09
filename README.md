@@ -810,7 +810,7 @@ There are several sample SpectroCoin wallet API client applications. You should 
 
 ## Java
 
-Sample Java application **coming soon**.
+Sample SpectroCoin Wallet Java application could be found [here](https://github.com/SpectroFinance/SpectroCoin-Wallet-Java).
 
 ## PHP
 
