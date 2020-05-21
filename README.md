@@ -39,7 +39,7 @@ Root REST API address: ``https://spectrocoin.com/api/r/``
 Wallet API can return specific response object (HTTP **200**), validation error (HTTP **203**), suspicious activity error (HTTP **403**) or internal error (HTTP **500**).
 
 ## Introduction
-![](https://github.com/SpectroFinance/SpectroCoin-Wallet-API/blob/master/wallet%20api.jpg)
+![](https://github.com/SpectroFinance/SpectroCoin-Wallet-API/blob/master/APIillustration.svg)
 
 SpectroCoin use two services:
   * **Authorization service** ``/oauth2`` - necessary for getting access to wallet api private service methods usage.
